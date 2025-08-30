@@ -1,0 +1,785 @@
+import sys
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QHBoxLayout, QVBoxLayout, QTextEdit, 
+    QLabel, QPushButton, QFrame, QLineEdit, QCheckBox, QRadioButton,
+    QProgressBar, QGroupBox, QGridLayout, QInputDialog, QMessageBox, QDialog,
+    QComboBox, QSpinBox, QToolTip
+)
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QColor, QFont
+
+# [수정됨] 복잡한 setup을 위한 헬퍼 함수 정의
+def setup_level_4():
+    ok_button = QPushButton("확인")
+    ok_button.setObjectName("okButton")
+    cancel_button = QPushButton("취소")
+    cancel_button.setObjectName("cancelButton")
+    return [ok_button, cancel_button]
+
+def setup_level_5():
+    title_label = QLabel("제목")
+    title_label.setObjectName("titleLabel")
+    return [title_label, QLabel("일반 텍스트")]
+
+def setup_level_10():
+    normal_button = QPushButton("일반")
+    normal_button.setProperty("data-role", "normal")
+    danger_button = QPushButton("삭제")
+    danger_button.setProperty("data-role", "danger")
+    return [normal_button, danger_button]
+    
+def setup_level_11():
+    frame = QFrame()
+    layout = QHBoxLayout(frame)
+    layout.addWidget(QPushButton("A"))
+    layout.addWidget(QLabel("라벨"))
+    layout.addWidget(QPushButton("B"))
+    return [frame, QPushButton("바깥 버튼")]
+
+def setup_level_12():
+    parent_frame = QFrame()
+    parent_layout = QVBoxLayout(parent_frame)
+    parent_layout.addWidget(QLabel("직속 자식"))
+    
+    child_frame = QFrame()
+    child_layout = QVBoxLayout(child_frame)
+    child_layout.addWidget(QLabel("손자"))
+    
+    parent_layout.addWidget(child_frame)
+    return [parent_frame]
+
+def setup_level_13():
+    btn = QPushButton("로그인")
+    btn.setObjectName("loginButton")
+    return [btn]
+
+def setup_level_20():
+    btn = QPushButton("이미지 버튼")
+    btn.setObjectName("imageButton")
+    btn.setMinimumHeight(40)
+    return [btn]
+
+def setup_level_25():
+    btn1 = QPushButton("일반1")
+    special_btn = QPushButton("특별")
+    special_btn.setObjectName("special")
+    btn2 = QPushButton("일반2")
+    return [btn1, special_btn, btn2]
+    
+def setup_level_40():
+    frame = QFrame()
+    frame_layout = QVBoxLayout(frame)
+    group_box = QGroupBox("그룹")
+    group_layout = QVBoxLayout(group_box)
+    group_layout.addWidget(QPushButton("선택 대상"))
+    frame_layout.addWidget(group_box)
+    return [frame]
+
+def setup_level_50():
+    final_btn = QPushButton("완료")
+    final_btn.setObjectName("finalButton")
+    cancel_btn = QPushButton("취소")
+    cancel_btn.setObjectName("cancelButton")
+    return [final_btn, cancel_btn, QLineEdit()]
+
+# [수정됨] 50개의 레벨을 6단계 커리큘럼으로 재구성
+LEVELS = [
+    # --- 1단계: 기본 속성 (10문제) ---
+    {
+        "title": "[1-1] 배경색 바꾸기 (background-color)",
+        "description": "모든 QPushButton의 배경색을 <code>#0078d7</code> (파란색)으로 바꿔보세요.",
+        "hint": "배경색은 'background-color' 속성으로 바꿀 수 있어요.",
+        "setup": lambda: [QPushButton("버튼 1"), QPushButton("버튼 2")],
+        "solution": lambda p, c: "qpushbutton" in c and "background-color" in c and "#0078d7" in c,
+        "correctCode": "QPushButton {\n  background-color: #0078d7;\n}"
+    },
+    {
+        "title": "[1-2] 글자색 바꾸기 (color)",
+        "description": "모든 QLabel의 글자색을 <code>#e74c3c</code> (빨간색)으로 바꿔보세요.",
+        "hint": "글자색은 'color' 속성으로 바꿀 수 있어요.",
+        "setup": lambda: [QLabel("이것은 라벨입니다.")],
+        "solution": lambda p, c: "qlabel" in c and "color" in c and "#e74c3c" in c,
+        "correctCode": "QLabel {\n  color: #e74c3c;\n}"
+    },
+    {
+        "title": "[1-3] 테두리 설정하기 (border)",
+        "description": "모든 QLineEdit의 테두리를 <code>2px solid #f1c40f</code> (노란색)로 만들어보세요.",
+        "hint": "테두리(border)는 '두께 스타일 색상' 순서로 값을 정해줄 수 있어요.",
+        "setup": lambda: [QLineEdit("텍스트 입력")],
+        "solution": lambda p, c: "2px" in c and "solid" in c and ("#f1c40f" in c or "yellow" in c),
+        "correctCode": "QLineEdit {\n  border: 2px solid #f1c40f;\n}"
+    },
+    {
+        "title": "[1-4] 글자 크기 바꾸기 (font-size)",
+        "description": "모든 QLabel의 폰트 크기를 <code>20px</code>로 키워보세요.",
+        "hint": "글자 크기는 'font-size' 속성으로 조절할 수 있어요.",
+        "setup": lambda: [QLabel("글자 크기 테스트")],
+        "solution": lambda p, c: "qlabel" in c and "font-size" in c and "20px" in c,
+        "correctCode": "QLabel {\n  font-size: 20px;\n}"
+    },
+    {
+        "title": "[1-5] 글자 굵게 만들기 (font-weight)",
+        "description": "모든 QPushButton의 글자를 굵게(<code>bold</code>) 만드세요.",
+        "hint": "글자 두께는 'font-weight' 속성으로 조절해요. 'bold'라고 쓰면 굵어져요.",
+        "setup": lambda: [QPushButton("굵은 글씨 버튼")],
+        "solution": lambda p, c: "qpushbutton" in c and "font-weight" in c and "bold" in c,
+        "correctCode": "QPushButton {\n  font-weight: bold;\n}"
+    },
+    {
+        "title": "[1-6] 글자 기울이기 (font-style)",
+        "description": "모든 QLabel의 폰트를 기울임(<code>italic</code>)으로 변경하세요.",
+        "hint": "글자를 기울이는 속성은 'font-style'이고, 값은 'italic'이에요.",
+        "setup": lambda: [QLabel("기울어진 텍스트")],
+        "solution": lambda p, c: "qlabel" in c and "font-style" in c and "italic" in c,
+        "correctCode": "QLabel {\n  font-style: italic;\n}"
+    },
+    {
+        "title": "[1-7] 테두리 둥글게 (border-radius)",
+        "description": "모든 QPushButton의 모서리를 <code>10px</code>만큼 둥글게 만드세요.",
+        "hint": "모서리를 둥글게 만들려면 'border-radius'를 사용해요.",
+        "setup": lambda: [QPushButton("둥근 버튼")],
+        "solution": lambda p, c: "border-radius" in c and "10px" in c,
+        "correctCode": "QPushButton {\n  border-radius: 10px;\n}"
+    },
+    {
+        "title": "[1-8] 최소 너비 지정 (min-width)",
+        "description": "모든 QPushButton의 최소 너비를 <code>150px</code>로 설정하세요.",
+        "hint": "최소 너비는 'min-width' 속성으로 정할 수 있어요.",
+        "setup": lambda: [QPushButton("짧은글")],
+        "solution": lambda p, c: "min-width" in c and "150px" in c,
+        "correctCode": "QPushButton {\n  min-width: 150px;\n}"
+    },
+    {
+        "title": "[1-9] 안쪽 여백 주기 (padding)",
+        "description": "모든 QPushButton의 내부 여백(<code>padding</code>)을 <code>10px</code>로 설정하여 버튼을 더 크게 만드세요.",
+        "hint": "안쪽 여백을 의미하는 'padding' 속성을 사용해 보세요.",
+        "setup": lambda: [QPushButton("넓어진 버튼")],
+        "solution": lambda p, c: "padding" in c and "10px" in c,
+        "correctCode": "QPushButton {\n  padding: 10px;\n}"
+    },
+    {
+        "title": "[1-10] 바깥 여백 주기 (margin)",
+        "description": "모든 QPushButton에 <code>10px</code>의 바깥 여백을 주세요.",
+        "hint": "위젯의 바깥 여백은 'margin'으로 조절해요.",
+        "setup": lambda: [QPushButton("버튼1"), QPushButton("버튼2")],
+        "solution": lambda p, c: "margin" in c and "10px" in c,
+        "correctCode": "QPushButton {\n  margin: 10px;\n}"
+    },
+    # --- 2단계: 기본 선택자 (8문제) ---
+    {
+        "title": "[2-1] ID 선택자 (#)",
+        "description": "이름이 <code>okButton</code>인 QPushButton의 배경색만 <code>#2ecc71</code> (녹색)으로 바꿔보세요.",
+        "hint": "특정한 위젯 하나만 선택할 때는 이름 앞에 '#' 기호를 붙여요.",
+        "setup": setup_level_4,
+        "solution": lambda p, c: "#okbutton" in c and "background-color" in c and "#2ecc71" in c,
+        "correctCode": "#okButton {\n  background-color: #2ecc71;\n}"
+    },
+    {
+        "title": "[2-2] ID 선택자로 폰트 바꾸기",
+        "description": "이름이 <code>titleLabel</code>인 QLabel의 폰트 크기를 <code>20px</code>로 키워보세요.",
+        "hint": "ID 선택자와 폰트 속성을 함께 사용해 보세요.",
+        "setup": setup_level_5,
+        "solution": lambda p, c: "#titlelabel" in c and "font-size" in c and "20px" in c,
+        "correctCode": "#titleLabel {\n  font-size: 20px;\n}"
+    },
+    {
+        "title": "[2-3] 속성 선택자 ([])",
+        "description": "<code>enabled</code> 속성이 <code>false</code>인 버튼의 글자색을 <code>#888</code>로 만드세요.",
+        "hint": "특정 속성을 가진 위젯은 대괄호 '[]'를 사용해서 찾을 수 있어요.",
+        "setup": lambda: [QPushButton("활성 버튼"), (lambda b: (b.setEnabled(False), b)[1])(QPushButton("비활성 버튼"))],
+        "solution": lambda p, c: "[enabled=\"false\"]" in c,
+        "correctCode": "QPushButton[enabled=\"false\"] {\n  color: #888;\n}"
+    },
+    {
+        "title": "[2-4] 속성값 선택자 ([key=value])",
+        "description": "<code>data-role</code> 속성이 <code>danger</code>인 버튼의 글자색을 흰색, 배경색을 빨간색(<code>red</code>)으로 바꾸세요.",
+        "hint": "속성과 값을 함께 사용하려면 '[속성=값]' 형태로 쓸 수 있어요.",
+        "setup": setup_level_10,
+        "solution": lambda p, c: "danger" in c and "red" in c,
+        "correctCode": "QPushButton[data-role=\"danger\"] {\n  color: white;\n  background-color: red;\n}"
+    },
+    {
+        "title": "[2-5] 그룹 선택자 (,)",
+        "description": "<code>QPushButton</code>과 <code>QLabel</code> 모두의 글자색을 <code>#50c878</code> (에메랄드색)으로 바꾸세요.",
+        "hint": "여러 위젯에 같은 스타일을 적용하려면 쉼표(,)로 선택자를 연결할 수 있어요.",
+        "setup": lambda: [QPushButton("버튼"), QLabel("라벨")],
+        "solution": lambda p, c: "qpushbutton," in c and ",qlabel" in c,
+        "correctCode": "QPushButton, QLabel {\n  color: #50c878;\n}"
+    },
+    {
+        "title": "[2-6] 전체 선택자 (*)",
+        "description": "모든 위젯의 테두리를 <code>1px solid red</code>로 만드세요.",
+        "hint": "별표(*)는 모든 위젯을 선택하는 '전체 선택자'예요.",
+        "setup": lambda: [QPushButton("버튼"), QLabel("라벨")],
+        "solution": lambda p, c: c.strip().startswith("*"),
+        "correctCode": "* {\n  border: 1px solid red;\n}"
+    },
+    {
+        "title": "[2-7] 자손 선택자 ( )",
+        "description": "<code>QFrame</code> 안에 있는 모든 <code>QPushButton</code>의 테두리를 둥글게(<code>border-radius: 15px</code>) 만드세요.",
+        "hint": "A 안에 있는 B를 선택할 땐 'A B'처럼 띄어쓰기를 해요.",
+        "setup": setup_level_11,
+        "solution": lambda p, c: "qframeqpushbutton" in c and "15px" in c,
+        "correctCode": "QFrame QPushButton {\n  border-radius: 15px;\n}"
+    },
+    {
+        "title": "[2-8] 자식 선택자 (>)",
+        "description": "<code>QFrame</code>의 바로 아래 자식인 <code>QLabel</code>의 글자를 굵게(<code>font-weight: bold</code>) 만드세요.",
+        "hint": "A 바로 아래 있는 B를 선택할 땐 'A > B'처럼 부등호를 써요.",
+        "setup": setup_level_12,
+        "solution": lambda p, c: "qframe>qlabel" in c and "bold" in c,
+        "correctCode": "QFrame > QLabel {\n  font-weight: bold;\n}"
+    },
+    # --- 3단계: 상태 선택자 (10문제) ---
+    {
+        "title": "[3-1] 마우스 오버 (:hover)",
+        "description": "QPushButton에 마우스를 올렸을 때 배경색을 <code>#e5f1fb</code>로 바꾸세요.",
+        "hint": "마우스를 올렸을 때의 상태는 위젯 이름 뒤에 ':hover'를 붙여서 표현해요.",
+        "setup": lambda: [QPushButton("마우스를 올려보세요")],
+        "solution": lambda p, c: "pushbutton:hover" in c,
+        "correctCode": "QPushButton:hover {\n  background-color: #e5f1fb;\n}"
+    },
+    {
+        "title": "[3-2] 마우스 클릭 (:pressed)",
+        "description": "QPushButton을 클릭했을 때 배경색이 <code>#cce4f7</code>로 바뀌게 해보세요.",
+        "hint": "마우스로 꾹 누르고 있는 상태는 ':pressed'라고 해요.",
+        "setup": lambda: [QPushButton("클릭해보세요")],
+        "solution": lambda p, c: "pushbutton:pressed" in c,
+        "correctCode": "QPushButton:pressed {\n  background-color: #cce4f7;\n}"
+    },
+    {
+        "title": "[3-3] 입력 포커스 (:focus)",
+        "description": "QLineEdit가 선택되었을 때, 테두리 색을 <code>#0078d7</code> (파란색)으로 바꿔보세요.",
+        "hint": "입력창을 클릭해서 커서가 깜빡이는 상태를 ':focus'라고 해요.",
+        "setup": lambda: [QLineEdit()],
+        "solution": lambda p, c: "qlineedit:focus" in c,
+        "correctCode": "QLineEdit:focus {\n  border-color: #0078d7;\n}"
+    },
+    {
+        "title": "[3-4] 비활성 상태 (:disabled)",
+        "description": "비활성화된(<code>disabled</code>) <code>QPushButton</code>의 배경색을 <code>#aaa</code>, 글자색을 <code>#555</code>로 고정하세요.",
+        "hint": "사용할 수 없는 상태는 ':disabled'라고 표현해요.",
+        "setup": lambda: [(lambda b: (b.setEnabled(False), b)[1])(QPushButton("비활성 버튼"))],
+        "solution": lambda p, c: "pushbutton:disabled" in c and "#aaa" in c,
+        "correctCode": "QPushButton:disabled {\n  background-color: #aaa;\n  color: #555;\n}"
+    },
+    {
+        "title": "[3-5] 체크된 상태 (:checked)",
+        "description": "<code>QCheckBox</code>가 체크되었을 때(<code>:checked</code>) 글자색을 <code>#0078d7</code>로 바꾸세요.",
+        "hint": "체크된 상태는 ':checked' 선택자를 사용해요.",
+        "setup": lambda: [(lambda cb: (cb.setChecked(True), cb)[1])(QCheckBox("체크됨"))],
+        "solution": lambda p, c: "qcheckbox:checked" in c,
+        "correctCode": "QCheckBox:checked {\n  color: #0078d7;\n}"
+    },
+    {
+        "title": "[3-6] 체크 안 된 상태",
+        "description": "<code>QCheckBox</code>가 체크되지 않았을 때(<code>:!checked</code>) 글자를 기울임꼴로 만드세요.",
+        "hint": "체크 안 된 상태는 ':!checked' 또는 ':not(:checked)'를 사용해요.",
+        "setup": lambda: [QCheckBox("체크 안 됨")],
+        "solution": lambda p, c: (":!checked" in c or ":not(:checked)" in c) and "italic" in c,
+        "correctCode": "QCheckBox:!checked {\n  font-style: italic;\n}"
+    },
+    {
+        "title": "[3-7] ID와 상태 조합",
+        "description": "이름이 <code>loginButton</code>인 버튼에 마우스를 올렸을 때만 테두리를 <code>2px solid #0078d7</code>로 만드세요.",
+        "hint": "선택자는 '#이름:상태'처럼 붙여서 쓸 수 있어요.",
+        "setup": setup_level_13,
+        "solution": lambda p, c: "#loginbutton:hover" in c,
+        "correctCode": "#loginButton:hover {\n  border: 2px solid #0078d7;\n}"
+    },
+    {
+        "title": "[3-8] 속성과 상태 조합",
+        "description": "<code>data-role</code>이 <code>danger</code>인 버튼을 클릭했을 때(<code>:pressed</code>) 배경색을 <code>darkred</code>로 바꾸세요.",
+        "hint": "속성 선택자와 상태 선택자는 이어서 쓸 수 있어요. 예: [key=value]:state",
+        "setup": setup_level_10,
+        "solution": lambda p, c: "[data-role=\"danger\"]:pressed" in c,
+        "correctCode": "QPushButton[data-role=\"danger\"]:pressed {\n  background-color: darkred;\n}"
+    },
+    {
+        "title": "[3-9] 체크된 라디오 버튼",
+        "description": "<code>QRadioButton</code>이 체크되었을 때(<code>:checked</code>) 글자를 굵게 만드세요.",
+        "hint": "라디오 버튼도 체크박스처럼 ':checked' 상태를 가져요.",
+        "setup": lambda: [(lambda r: (r.setChecked(True), r)[1])(QRadioButton("체크된 라디오"))],
+        "solution": lambda p, c: "qradiobutton:checked" in c,
+        "correctCode": "QRadioButton:checked {\n  font-weight: bold;\n}"
+    },
+    {
+        "title": "[3-10] 두 가지 상태 조합",
+        "description": "<code>QPushButton</code>에 마우스를 올리고(<code>:hover</code>) 클릭까지 했을 때(<code>:pressed</code>) 테두리를 <code>2px solid red</code>로 만드세요.",
+        "hint": "두 가지 상태를 동시에 만족하려면 ':hover:pressed' 처럼 이어서 쓰면 돼요.",
+        "setup": lambda: [QPushButton("Hover and Press")],
+        "solution": lambda p, c: "pushbutton:hover:pressed" in c,
+        "correctCode": "QPushButton:hover:pressed {\n  border: 2px solid red;\n}"
+    },
+    # --- [수정됨] 4단계: 선택자 조합 및 심화 (8문제) ---
+    {
+        "title": "[4-1] 특정 위젯 제외하기 (:not())",
+        "description": "<code>#special</code> 버튼을 제외한 모든 <code>QPushButton</code>의 배경을 회색(<code>#ccc</code>)으로 만드세요.",
+        "hint": "특정 조건을 제외할 때는 ':not()' 선택자를 사용해요. 이 선택자는 PyQt에서 잘 동작합니다!",
+        "setup": setup_level_25,
+        "solution": lambda p, c: ":not(#special)" in c and "background-color" in c and "#ccc" in c,
+        "correctCode": "QPushButton:not(#special) {\n  background-color: #ccc;\n}"
+    },
+    {
+        "title": "[4-2] 복잡한 자손 선택",
+        "description": "<code>QFrame</code> 안의 <code>QGroupBox</code> 안에 있는 <code>QPushButton</code>의 글자색을 <code>orange</code>로 바꾸세요.",
+        "hint": "선택자를 띄어쓰기로 연결하면 여러 단계 아래의 자손을 선택할 수 있어요.",
+        "setup": setup_level_40,
+        "solution": lambda p, c: "qframeqgroupboxqpushbutton" in c,
+        "correctCode": "QFrame QGroupBox QPushButton {\n  color: orange;\n}"
+    },
+    {
+        "title": "[4-3] 툴팁 스타일링 (QToolTip)",
+        "description": "모든 툴팁(<code>QToolTip</code>)의 배경색을 <code>#fffacd</code>, 글자색을 <code>black</code>으로 바꾸세요.",
+        "hint": "마우스를 올렸을 때 나타나는 도움말 풍선은 QToolTip 위젯으로 스타일링할 수 있어요.",
+        "setup": lambda: [(lambda b: (b.setToolTip("이것은 툴팁입니다!"), b)[1])(QPushButton("툴팁 버튼"))],
+        "solution": lambda p, c: "qtooltip" in c and "background-color" in c and "color" in c,
+        "correctCode": "QToolTip {\n  background-color: #fffacd;\n  color: black;\n  border: 1px solid black;\n}"
+    },
+    {
+        "title": "[4-4] 그룹박스 제목 (QGroupBox::title)",
+        "description": "<code>QGroupBox</code>의 제목(<code>::title</code>) 부분의 글자색을 <code>#4fc3f7</code>(하늘색)으로 바꾸세요.",
+        "hint": "그룹박스의 제목 부분은 '::title' 서브 컨트롤로 선택할 수 있어요.",
+        "setup": lambda: [QGroupBox("제목 스타일 바꾸기")],
+        "solution": lambda p, c: "qgroupbox::title" in c and "color" in c,
+        "correctCode": "QGroupBox::title {\n  color: #4fc3f7;\n}"
+    },
+    {
+        "title": "[4-5] 그룹박스 제목 위치",
+        "description": "<code>QGroupBox</code>의 제목(<code>::title</code>)을 가운데 정렬하세요.",
+        "hint": "그룹박스 제목의 위치는 'subcontrol-position'으로 조절할 수 있어요.",
+        "setup": lambda: [QGroupBox("가운데 정렬된 제목")],
+        "solution": lambda p, c: "subcontrol-position" in c and "topcenter" in c,
+        "correctCode": "QGroupBox::title {\n  subcontrol-position: top center;\n}"
+    },
+    {
+        "title": "[4-6] 콤보박스 드롭다운 버튼 (QComboBox::drop-down)",
+        "description": "<code>QComboBox</code>의 화살표 버튼(<code>::drop-down</code>)의 배경색을 <code>#0078d7</code>로 바꾸세요.",
+        "hint": "콤보박스의 화살표 부분은 '::drop-down' 서브 컨트롤로 선택해요.",
+        "setup": lambda: [QComboBox()],
+        "solution": lambda p, c: "qcombobox::drop-down" in c,
+        "correctCode": "QComboBox::drop-down {\n  background-color: #0078d7;\n}"
+    },
+    {
+        "title": "[4-7] 스핀박스 위쪽 버튼 (QSpinBox::up-button)",
+        "description": "<code>QSpinBox</code>의 위쪽 화살표 버튼(<code>::up-button</code>)의 배경색을 <code>#2ecc71</code> (녹색)으로 바꾸세요.",
+        "hint": "스핀박스의 위쪽 화살표는 '::up-button' 서브 컨트롤이에요.",
+        "setup": lambda: [QSpinBox()],
+        "solution": lambda p, c: "qspinbox::up-button" in c,
+        "correctCode": "QSpinBox::up-button {\n  background-color: #2ecc71;\n}"
+    },
+    {
+        "title": "[4-8] 스핀박스 아래쪽 버튼 (QSpinBox::down-button)",
+        "description": "<code>QSpinBox</code>의 아래쪽 화살표 버튼(<code>::down-button</code>)의 배경색을 <code>#e74c3c</code> (빨간색)으로 바꾸세요.",
+        "hint": "스핀박스의 아래쪽 화살표는 '::down-button' 서브 컨트롤이에요.",
+        "setup": lambda: [QSpinBox()],
+        "solution": lambda p, c: "qspinbox::down-button" in c,
+        "correctCode": "QSpinBox::down-button {\n  background-color: #e74c3c;\n}"
+    },
+    # --- 5단계: 서브 컨트롤 (6문제) ---
+    {
+        "title": "[5-1] 체크박스 표시 부분 (::indicator)",
+        "description": "<code>QCheckBox</code>의 네모난 표시 부분(<code>::indicator</code>)의 크기를 <code>20px</code>로 키우세요.",
+        "hint": "위젯의 특정 부분을 꾸밀 때는 '::' 기호를 사용해요.",
+        "setup": lambda: [QCheckBox("체크박스")],
+        "solution": lambda p, c: "qcheckbox::indicator" in c and "width" in c,
+        "correctCode": "QCheckBox::indicator {\n  width: 20px;\n  height: 20px;\n}"
+    },
+    {
+        "title": "[5-2] 체크된 체크박스 표시",
+        "description": "<code>QCheckBox</code>가 체크되었을 때(<code>:checked</code>), 표시 부분(<code>::indicator</code>)의 배경색을 <code>#0078d7</code>로 바꾸세요.",
+        "hint": "상태 선택자와 서브 컨트롤을 조합할 수 있어요. 예: QWidget::sub-control:state",
+        "setup": lambda: [(lambda cb: (cb.setChecked(True), cb)[1])(QCheckBox("체크됨"))],
+        "solution": lambda p, c: "qcheckbox::indicator:checked" in c,
+        "correctCode": "QCheckBox::indicator:checked {\n  background-color: #0078d7;\n}"
+    },
+    {
+        "title": "[5-3] 라디오 버튼 표시 부분",
+        "description": "<code>QRadioButton</code>의 동그란 표시 부분(<code>::indicator</code>)을 둥글게(<code>border-radius: 8px</code>) 만드세요.",
+        "hint": "라디오 버튼의 동그란 부분도 '::indicator'라고 불러요.",
+        "setup": lambda: [QRadioButton("라디오 버튼")],
+        "solution": lambda p, c: "qradiobutton::indicator" in c and "border-radius" in c,
+        "correctCode": "QRadioButton::indicator {\n  border-radius: 8px;\n}"
+    },
+    {
+        "title": "[5-4] 체크된 라디오 버튼 표시",
+        "description": "<code>QRadioButton</code>이 체크되었을 때(<code>:checked</code>), 동그란 부분(<code>::indicator</code>)의 배경을 파란색으로 채우세요.",
+        "hint": "체크된 상태는 ':checked'를 사용해요.",
+        "setup": lambda: [(lambda r: (r.setChecked(True), r)[1])(QRadioButton("체크된 라디오"))],
+        "solution": lambda p, c: "qradiobutton::indicator:checked" in c,
+        "correctCode": "QRadioButton::indicator:checked {\n  background-color: #0078d7;\n}"
+    },
+    {
+        "title": "[5-5] 프로그레스 바 배경",
+        "description": "<code>QProgressBar</code>의 배경(전체 막대)의 색을 <code>#ddd</code>로 바꾸세요.",
+        "hint": "프로그레스 바 전체는 QProgressBar 자체를 선택해서 스타일을 적용해요.",
+        "setup": lambda: [(lambda p: (p.setValue(50), p)[1])(QProgressBar())],
+        "solution": lambda p, c: "qprogressbar" in c and "::" not in c,
+        "correctCode": "QProgressBar {\n  background-color: #ddd;\n}"
+    },
+    {
+        "title": "[5-6] 프로그레스 바 채워진 부분 (::chunk)",
+        "description": "<code>QProgressBar</code>의 채워진 부분(<code>::chunk</code>)의 배경색을 <code>#2ecc71</code> (녹색)으로 바꾸세요.",
+        "hint": "프로그레스 바의 채워진 부분은 '::chunk'라고 해요.",
+        "setup": lambda: [(lambda p: (p.setValue(50), p)[1])(QProgressBar())],
+        "solution": lambda p, c: "qprogressbar::chunk" in c,
+        "correctCode": "QProgressBar::chunk {\n  background-color: #2ecc71;\n}"
+    },
+    # --- 6단계: 고급 스타일링 및 조합 (8문제) ---
+    {
+        "title": "[6-1] 그라데이션 배경",
+        "description": "<code>QPushButton</code>의 배경을 위(파랑)에서 아래(초록)로 변하는 그라데이션으로 만드세요.",
+        "hint": "선형 그라데이션은 'qlineargradient'를 사용해요.",
+        "setup": lambda: [QPushButton("그라데이션 버튼")],
+        "solution": lambda p, c: "qlineargradient" in c,
+        "correctCode": "QPushButton {\n  background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0078d7, stop:1 #2ecc71);\n}"
+    },
+    {
+        "title": "[6-2] 투명도 조절 (opacity)",
+        "description": "모든 <code>QPushButton</code>의 투명도를 <code>0.7</code>로 설정하세요.",
+        "hint": "투명도는 'opacity' 속성을 사용해요. 0은 완전 투명, 1은 완전 불투명이에요.",
+        "setup": lambda: [QPushButton("반투명 버튼")],
+        "solution": lambda p, c: "opacity" in c and "0.7" in c,
+        "correctCode": "QPushButton {\n  opacity: 0.7;\n}"
+    },
+    {
+        "title": "[6-3] 배경 이미지 넣기",
+        "description": "<code>#imageButton</code> 버튼에 배경 이미지를 넣어보세요.",
+        "hint": "배경 이미지는 'background-image' 속성과 'url()' 함수를 사용해요.",
+        "setup": setup_level_20,
+        "solution": lambda p, c: "background-image" in c and "url" in c,
+        "correctCode": "#imageButton {\n  background-image: url('path/to/your/image.png');\n}"
+    },
+    {
+        "title": "[6-4] 배경 이미지 반복 없애기",
+        "description": "버튼의 배경 이미지가 반복되지 않도록 설정하세요.",
+        "hint": "배경 이미지가 반복되지 않게 하려면 'background-repeat: no-repeat;'를 사용해요.",
+        "setup": lambda: [QPushButton()],
+        "solution": lambda p, c: "background-repeat" in c and "no-repeat" in c,
+        "correctCode": "QPushButton {\n  background-image: url(path/to/image.png);\n  background-repeat: no-repeat;\n}"
+    },
+    {
+        "title": "[6-5] 배경 이미지 위치",
+        "description": "버튼의 배경 이미지를 가운데로 오게 하세요.",
+        "hint": "배경 이미지 위치는 'background-position: center;' 처럼 조절할 수 있어요.",
+        "setup": lambda: [QPushButton()],
+        "solution": lambda p, c: "background-position" in c and "center" in c,
+        "correctCode": "QPushButton {\n  background-image: url(path/to/image.png);\n  background-repeat: no-repeat;\n  background-position: center;\n}"
+    },
+    {
+        "title": "[6-6] 테두리 각 부분 다르게",
+        "description": "버튼의 위쪽 테두리는 <code>3px solid red</code>, 아래쪽은 <code>3px solid blue</code>로 설정하세요.",
+        "hint": "border-top-color, border-right-style 처럼 방향과 속성을 조합할 수 있어요.",
+        "setup": lambda: [QPushButton("위아래 테두리")],
+        "solution": lambda p, c: "border-top" in c and "border-bottom" in c,
+        "correctCode": "QPushButton {\n  border-top: 3px solid red;\n  border-bottom: 3px solid blue;\n}"
+    },
+    {
+        "title": "[6-7] 글자 간격 조절 (letter-spacing)",
+        "description": "<code>QLabel</code>의 글자 간격을 <code>3px</code>로 설정하세요.",
+        "hint": "글자 사이의 간격은 'letter-spacing'으로 조절해요.",
+        "setup": lambda: [QLabel("글 자 간 격")],
+        "solution": lambda p, c: "letter-spacing" in c and "3px" in c,
+        "correctCode": "QLabel {\n  letter-spacing: 3px;\n}"
+    },
+    {
+        "title": "[6-8] 최종 미션!",
+        "description": "요구사항에 맞게 세 가지 스타일을 모두 적용해보세요.",
+        "hint": "지금까지 배운 선택자들을 조합해서 사용해보세요!",
+        "setup": setup_level_50,
+        "solution": lambda p, c: "#finalbutton:pressed" in c and "#cancelbutton:hover" in c and "qlineedit:focus" in c,
+        "correctCode": "#finalButton:pressed {\n  border: 2px solid green;\n}\n#cancelButton:hover {\n  background-color: red;\n}\nQLineEdit:focus {\n  background-color: yellow;\n}"
+    }
+]
+
+class AnswerDialog(QDialog):
+    def __init__(self, correct_code, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("정답 코드")
+        self.correct_code = correct_code
+
+        layout = QVBoxLayout(self)
+
+        self.code_display = QTextEdit()
+        self.code_display.setReadOnly(True)
+        self.code_display.setText(self.correct_code)
+        self.code_display.setStyleSheet("""
+            QTextEdit {
+                background-color: #2a2a2a;
+                color: #a7f3d0;
+                padding: 10px;
+                border-radius: 4px;
+                font-family: 'D2Coding', 'Courier New';
+            }
+        """)
+        layout.addWidget(self.code_display)
+
+        button_layout = QHBoxLayout()
+        self.copy_button = QPushButton("복사하기")
+        self.copy_button.clicked.connect(self.copy_code)
+        self.close_button = QPushButton("닫기")
+        self.close_button.clicked.connect(self.accept)
+
+        button_layout.addStretch()
+        button_layout.addWidget(self.copy_button)
+        button_layout.addWidget(self.close_button)
+        layout.addLayout(button_layout)
+
+    def copy_code(self):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(self.correct_code)
+        self.copy_button.setText("복사됨!")
+        QTimer.singleShot(1500, lambda: self.copy_button.setText("복사하기"))
+
+
+class QSSTutorialApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.current_level = 0
+        self.wrong_attempts = [0] * len(LEVELS)
+        self.init_ui()
+        self.load_level(0)
+
+    def init_ui(self):
+        self.setWindowTitle("QSS GUI 튜토리얼")
+        self.setGeometry(100, 100, 1200, 700)
+        self.setStyleSheet("""
+            QWidget {
+                font-family: 'Noto Sans KR';
+                background-color: #3c3c3c;
+                color: #f0f0f0;
+            }
+            .panel {
+                background-color: #505050;
+                border: 1px solid #2a2a2a;
+                border-radius: 8px;
+            }
+            .panel QLabel { color: #f0f0f0; }
+            .panel QLineEdit { background-color: #2a2a2a; color: #f0f0f0; border: 1px solid #6a6a6a; border-radius: 4px; padding: 5px; }
+            .panel QPushButton { 
+                background-color: #606060; 
+                border: 1px solid #2a2a2a;
+                padding: 8px;
+                border-radius: 4px;
+            }
+            .panel QPushButton:hover { background-color: #707070; }
+        """)
+
+        main_layout = QHBoxLayout()
+        
+        # --- Left Panel ---
+        left_panel = QWidget()
+        left_panel.setObjectName("panel")
+        left_layout = QVBoxLayout(left_panel)
+        
+        self.level_title_label = QLabel("레벨 제목")
+        self.level_title_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #4fc3f7;")
+        
+        self.level_description_label = QLabel("레벨 설명")
+        self.level_description_label.setWordWrap(True)
+        self.level_description_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        
+        hint_box = QGroupBox("💡 QSS 핵심 팁!")
+        hint_box.setStyleSheet("QGroupBox { border: 1px solid #4fc3f7; border-radius: 5px; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px 0 5px; }")
+        hint_layout = QVBoxLayout(hint_box)
+        self.level_hint_label = QLabel("힌트 내용")
+        self.level_hint_label.setWordWrap(True)
+        hint_layout.addWidget(self.level_hint_label)
+
+        self.qss_editor = QTextEdit()
+        self.qss_editor.setPlaceholderText("여기에 QSS 코드를 입력하세요...")
+        self.qss_editor.setStyleSheet("background-color: #2a2a2a; color: #f0f0f0; border: 1px solid #6a6a6a; border-radius: 4px; font-family: 'D2Coding', 'Courier New';")
+        
+        self.qss_editor.textChanged.connect(self.apply_styles)
+        
+        self.check_answer_button = QPushButton("정답 검사하기")
+        self.check_answer_button.clicked.connect(self.check_answer)
+
+        self.show_answer_button = QPushButton("정답 보기")
+        self.show_answer_button.setVisible(False)
+        self.show_answer_button.clicked.connect(self.show_correct_answer)
+        self.show_answer_button.setStyleSheet("background-color: #fbc02d; color: #111;")
+        
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.check_answer_button)
+        button_layout.addWidget(self.show_answer_button)
+
+        self.feedback_label = QLabel("")
+        self.feedback_label.setAlignment(Qt.AlignCenter)
+
+        left_layout.addWidget(self.level_title_label)
+        left_layout.addWidget(self.level_description_label)
+        left_layout.addWidget(hint_box)
+        left_layout.addWidget(QLabel("QSS 코드 작성:"))
+        left_layout.addWidget(self.qss_editor, 1) # Stretch factor
+        left_layout.addLayout(button_layout)
+        left_layout.addWidget(self.feedback_label)
+
+        # --- Right Panel ---
+        right_panel = QWidget()
+        right_panel.setObjectName("panel")
+        right_layout = QVBoxLayout(right_panel)
+        
+        preview_label = QLabel("🎨 실시간 미리보기")
+        preview_label.setAlignment(Qt.AlignCenter)
+        preview_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        
+        self.preview_window = QWidget()
+        self.preview_window.setStyleSheet("background-color: #f0f0f0; border-radius: 6px; border: 1px solid #adadad;")
+        
+        preview_window_layout = QVBoxLayout(self.preview_window)
+        preview_window_layout.setContentsMargins(1,1,1,1)
+        
+        title_bar = QLabel("YourApp")
+        title_bar.setStyleSheet("background-color: #e1e1e1; color: #333; font-weight: bold; padding: 4px 8px; border-bottom: 1px solid #ccc; border-top-left-radius: 6px; border-top-right-radius: 6px;")
+        
+        self.preview_area = QWidget()
+        self.preview_area_layout = QVBoxLayout(self.preview_area)
+        self.preview_area_layout.setAlignment(Qt.AlignCenter)
+
+        preview_window_layout.addWidget(title_bar)
+        preview_window_layout.addWidget(self.preview_area, 1)
+
+        right_layout.addWidget(preview_label)
+        right_layout.addWidget(self.preview_window, 1)
+
+        # --- Footer ---
+        footer = QWidget()
+        footer.setObjectName("panel")
+        footer_layout = QHBoxLayout(footer)
+        
+        self.prev_button = QPushButton("< 이전")
+        self.prev_button.clicked.connect(self.prev_level)
+        self.level_indicator_label = QLabel("1 / 50")
+        self.next_button = QPushButton("다음 >")
+        self.next_button.clicked.connect(self.next_level)
+
+        self.level_jump_input = QLineEdit()
+        self.level_jump_input.setPlaceholderText("번호")
+        self.level_jump_input.setFixedWidth(50)
+        self.level_jump_btn = QPushButton("이동")
+        self.level_jump_btn.clicked.connect(self.jump_to_level)
+
+        self.reset_button = QPushButton("초기화")
+        self.reset_button.setStyleSheet("background-color: #d32f2f;")
+        self.reset_button.clicked.connect(self.reset_level)
+
+        footer_layout.addWidget(self.prev_button)
+        footer_layout.addWidget(self.level_indicator_label)
+        footer_layout.addWidget(self.next_button)
+        footer_layout.addStretch()
+        footer_layout.addWidget(self.level_jump_input)
+        footer_layout.addWidget(self.level_jump_btn)
+        footer_layout.addStretch()
+        footer_layout.addWidget(self.reset_button)
+
+        # --- Main Layout Assembly ---
+        main_widget = QWidget()
+        main_layout.addWidget(left_panel, 1)
+        main_layout.addWidget(right_panel, 1)
+        main_widget.setLayout(main_layout)
+
+        final_layout = QVBoxLayout(self)
+        final_layout.addWidget(main_widget)
+        final_layout.addWidget(footer)
+
+    def load_level(self, level_index):
+        self.current_level = level_index
+        level_data = LEVELS[level_index]
+
+        while self.preview_area_layout.count():
+            child = self.preview_area_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        widgets = level_data["setup"]()
+        for widget in widgets:
+            self.preview_area_layout.addWidget(widget)
+
+        self.level_title_label.setText(level_data["title"])
+        self.level_description_label.setText(level_data["description"])
+        self.level_hint_label.setText(level_data["hint"])
+        self.level_indicator_label.setText(f"{level_index + 1} / {len(LEVELS)}")
+
+        self.qss_editor.clear()
+        self.feedback_label.setText("")
+        self.show_answer_button.setVisible(False)
+        
+        self.prev_button.setEnabled(level_index > 0)
+        self.next_button.setEnabled(False)
+        
+        self.apply_styles()
+
+    def apply_styles(self):
+        stylesheet = self.qss_editor.toPlainText()
+        self.preview_area.setStyleSheet(stylesheet)
+
+    def check_answer(self):
+        level_data = LEVELS[self.current_level]
+        user_code = self.qss_editor.toPlainText().lower().replace("\n", "").replace(" ", "")
+        
+        is_correct = False
+        try:
+            is_correct = level_data["solution"](self.preview_area, user_code)
+        except Exception as e:
+            print(f"Error in solution check for level {self.current_level + 1}: {e}")
+            is_correct = False
+
+        if is_correct:
+            self.feedback_label.setText("🎉 정답입니다! 다음으로 진행하세요.")
+            self.feedback_label.setStyleSheet("color: #69f0ae;")
+            self.next_button.setEnabled(True)
+            self.wrong_attempts[self.current_level] = 0
+            self.show_answer_button.setVisible(False)
+        else:
+            if not user_code.strip():
+                self.feedback_label.setText("코드를 입력하고 검사해주세요.")
+                self.feedback_label.setStyleSheet("color: #f0f0f0;")
+                return
+
+            self.wrong_attempts[self.current_level] += 1
+            attempts = self.wrong_attempts[self.current_level]
+            if attempts >= 5:
+                self.feedback_label.setText("다섯 번 시도했어요. 정답을 확인하고 다음으로 넘어갈 수 있습니다.")
+                self.feedback_label.setStyleSheet("color: #ffcc80;")
+                self.show_answer_button.setVisible(True)
+                self.next_button.setEnabled(True)
+            else:
+                self.feedback_label.setText(f"🤔 조금 다르네요. 다시 시도해보세요! ({attempts}/5)")
+                self.feedback_label.setStyleSheet("color: #ff8a80;")
+
+    def show_correct_answer(self):
+        level_data = LEVELS[self.current_level]
+        dialog = AnswerDialog(level_data['correctCode'], self)
+        dialog.exec_()
+
+    def next_level(self):
+        if self.current_level < len(LEVELS) - 1:
+            self.load_level(self.current_level + 1)
+
+    def prev_level(self):
+        if self.current_level > 0:
+            self.load_level(self.current_level - 1)
+            
+    def jump_to_level(self):
+        level_num_str = self.level_jump_input.text()
+        try:
+            level_num = int(level_num_str)
+            if 1 <= level_num <= len(LEVELS):
+                self.load_level(level_num - 1)
+                self.level_jump_input.clear()
+            else:
+                raise ValueError
+        except (ValueError, TypeError):
+            QMessageBox.warning(self, "입력 오류", f"1에서 {len(LEVELS)} 사이의 숫자를 입력해주세요.")
+            self.level_jump_input.clear()
+
+    def reset_level(self):
+        self.wrong_attempts[self.current_level] = 0
+        self.load_level(self.current_level)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = QSSTutorialApp()
+    ex.show()
+    sys.exit(app.exec_())
